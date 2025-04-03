@@ -1,4 +1,4 @@
-#include "Board.hpp" //isotream, vector, sfml/Graphics.hpp
+#include "ChessBoard.hpp" //isotream, vector, sfml/Graphics.hpp, std::array
 
 // save state before closing
 
@@ -14,10 +14,10 @@ int main()
     sf::RenderWindow window(sf::VideoMode({900, 900}), "My window", sf::Style::Default, sf::State::Windowed, settings);
     window.setFramerateLimit(FRAME_RATE);
 
-    Board board;
-
-    auto spriteOpt = board.load("./assets/images/Untitled.png");
-    sf::Sprite sprite = *spriteOpt;
+    ChessBoard board;
+    
+    //auto spriteOpt = board.load("./assets/images/Untitled.png");
+    //sf::Sprite sprite = *spriteOpt;
     
     // run the program as long as the window is open
     while (window.isOpen())
@@ -40,8 +40,8 @@ int main()
         window.clear(sf::Color::Black);
 
         // draw everything here...
-
-        board.draw(window, sprite);
+       
+        board.draw(window);
 
         // end the current frame
         window.display();
