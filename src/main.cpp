@@ -1,6 +1,7 @@
 #include "ChessBoard.hpp" //isotream, vector, sfml/Graphics.hpp, std::array
 
 // save state before closing
+// text {numbers and letters} in squares
 
 #define height
 #define FRAME_RATE 60
@@ -16,6 +17,7 @@ int main()
 
     ChessBoard board;
     
+    
     //auto spriteOpt = board.load("./assets/images/Untitled.png");
     //sf::Sprite sprite = *spriteOpt;
     
@@ -28,24 +30,36 @@ int main()
             // "close requested" event: we close the window
             if (event->is<sf::Event::Closed>())
                 window.close();
-            
-                // "close requested" event: we close the window
-            if (event->is<sf::Event::Closed>())
-            window.close();
-        
+
+            else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
+            {
+                if (keyPressed->scancode == sf::Keyboard::Scancode::Escape)
+                    window.close();
+            }
+            if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>())
+            {
+                //std::cout << "new mouse y: " << mouseMoved->position.y << std::endl;
+                //std::cout << "new mouse x: " << mouseMoved->position.x << std::endl;
+                board.setColor(mouseMoved->position);
+                
+            }
+            //sf::Vector2i localPosition = sf::Mouse::getPosition(window);
+            //if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
             
         }
 
         // clear the window with black color
-        window.clear(sf::Color::Black);
+        window.clear();
 
         // draw everything here...
        
         board.draw(window);
-
+        
         // end the current frame
         window.display();
+        
     }
+    
 }
 
 // to pause and resume

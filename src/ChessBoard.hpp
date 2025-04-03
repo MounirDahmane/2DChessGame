@@ -10,6 +10,10 @@
 #define BOARD_OFFSET_Y 50.0f
 #define BOARD_OFFSET_X 50.0f
 
+#define BLACK_SQUARE   sf::Color(222, 184, 135)
+#define WHITE_SQUARE   sf::Color(139, 69, 19)
+#define HIGH_LIGHTED_SQUARE   sf::Color(200, 69, 19)
+
 #define BLACK_BISHOP        -3    
 #define BLACK_KING          -7
 #define BLACK_KNIGHT        -3
@@ -48,9 +52,17 @@ public:
 
     void load();
 
-    void draw(sf::RenderWindow& target);//, sf::Sprite& sprite);
+    void draw(sf::RenderWindow& target);
 
+    void setColor(const sf::Vector2i& vec);
 private:
+
+    struct 
+    {
+        int8_t Index;
+        sf::Color Color;
+    } highLightedSquareInfo{-1, WHITE_SQUARE};
+    
     std::vector<sf::RectangleShape> squares;
     std::vector<sf::Sprite> pieces;
     std::unordered_map<std::string, sf::Texture> textureMap;

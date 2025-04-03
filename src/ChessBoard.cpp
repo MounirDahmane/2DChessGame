@@ -13,7 +13,7 @@ ChessBoard::ChessBoard(){
             sf::RectangleShape& rec = this->squares.back();
 
             rec.setPosition({PIXEL_WIDTH * col + BOARD_OFFSET_X, PIXEL_WIDTH * row + BOARD_OFFSET_Y});
-            rec.setFillColor(((row + col) % 2 == 0) ? sf::Color(222, 184, 135) : sf::Color(139, 69, 19));
+            rec.setFillColor(((row + col) % 2 == 0) ? BLACK_SQUARE : WHITE_SQUARE);
         }
     }
 
@@ -51,9 +51,9 @@ ChessBoard::ChessBoard(){
                 else if(pieceCode == 1)
                     piece.setTexture(this->textureMap[names[9]]);
                 else if(pieceCode == 9)
-                    piece.setTexture(this->textureMap[names[1]]);
+                    piece.setTexture(this->textureMap[names[10]]);
                 else if(pieceCode == 5)
-                    piece.setTexture(this->textureMap[names[1]]);
+                    piece.setTexture(this->textureMap[names[11]]);
                 
                 if(isSet)
                     this->pieces.emplace_back(piece);
@@ -62,6 +62,7 @@ ChessBoard::ChessBoard(){
     }
 
 }
+
 
 void ChessBoard::load(){
     
@@ -77,7 +78,7 @@ void ChessBoard::load(){
     }
 }
 
-void ChessBoard::draw(sf::RenderWindow& target){//){
+void ChessBoard::draw(sf::RenderWindow& target){
     
     sf::Sprite sprite(textureMap[names[12]]);
     target.draw(sprite);
@@ -88,3 +89,27 @@ void ChessBoard::draw(sf::RenderWindow& target){//){
     for(const auto& piece : this->pieces)
         target.draw(piece);
 } 
+
+void ChessBoard::setColor(const sf::Vector2i& mousePos){
+    for(size_t i = 0; i < this->squares.size(); i++){
+        const auto& pos = this->squares[i].getPosition();
+        const auto& color = this->squares[i].getFillColor();
+
+        //  x <= px <= x + w;   y <= py <= y + w
+        if (pos.x <= mousePos.x && mousePos.x <= pos.x + PIXEL_WIDTH && pos.y <= mousePos.y && mousePos.y <= pos.y + PIXEL_WIDTH) {
+            if(this->highLightedSquareInfo.Index >= 0){
+                if(this->highLightedSquareInfo.Index != i){
+                    this->squares[this->highLightedSquareInfo.Index].setFillColor(this->highLightedSquareInfo.Color);
+                    this->highLightedSquareInfo.Index = i;
+                    this->highLightedSquareInfo.Color = color;
+                }
+            }
+            else{
+                this->highLightedSquareInfo.Index = i;
+                this->highLightedSquareInfo.Color = color;
+            }
+            this->squares[i].setFillColor(HIGH_LIGHTED_SQUARE);
+            break;
+        }
+    }
+}
