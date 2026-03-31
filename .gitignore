@@ -48,7 +48,4 @@ assets/fonts/*.ipch
 Thumbs.db
 desktop.ini
 
-# Ignore the actual library binaries and source
-thirdparty/SFML/
-# Or if you just want to ignore all thirdparty folders
 thirdparty/
