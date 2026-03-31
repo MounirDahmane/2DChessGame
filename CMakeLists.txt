@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.15)
-project(E2-E4 LANGUAGES CXX)
+project(E2E4-Engine LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
