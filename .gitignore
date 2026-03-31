@@ -1,4 +1,54 @@
-# Executables
+# --- Build System (CMake) ---
 build/
-*.exe
+bin/
+lib/
+out/
+CMakeCache.txt
+CMakeFiles/
+CMakeScripts/
+cmake_install.cmake
+install_manifest.txt
+Makefile
+*.ninja
+
+# --- IDE (VS Code) ---
+.vscode/
+!.vscode/launch.json
+!.vscode/tasks.json
+*.code-workspace
+.history/
+.ionide/
+
+# --- Compiled Objects & Binaries ---
 *.o
+*.obj
+*.slo
+*.lo
+*.gch
+*.pch
+*.so
+*.dylib
+*.dll
+*.lai
+*.la
+*.a
+*.lib
+*.exe
+*.out
+*.app
+
+# --- Project Specific ---
+# Ignore the final executable if it's named ChessGame
+ChessGame
+# Ignore temp audio/font copies if they end up in build
+assets/fonts/*.ipch
+
+# --- OS Specific ---
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Ignore the actual library binaries and source
+thirdparty/SFML/
+# Or if you just want to ignore all thirdparty folders
+thirdparty/

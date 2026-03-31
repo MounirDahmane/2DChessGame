@@ -1,82 +1,118 @@
-#include "ChessBoard.hpp" //isotream, vector, sfml/Graphics.hpp, std::array
+#include "ChessBoard.hpp"
 
-// save state before closing
-// text {numbers and letters} in squares
+#include <string>
+#include <vector>
 
-#define height
-#define FRAME_RATE 60
+enum class GameState
+{
+    Menu,
+    Playing,
+    Quit
+};
+
+struct MenuButton
+{
+    sf::RectangleShape shape;
+    sf::Text text;
+
+    MenuButton(std::string label, sf::Vector2f pos, sf::Font &font)
+    {
+        shape.setSize({300, 60});
+        shape.setPosition(pos);
+        shape.setFillColor(sf::Color(60, 63, 65));
+        shape.setOutlineThickness(2);
+        shape.setOutlineColor(sf::Color::White);
+
+        text.setFont(font);
+        text.setString(label);
+        text.setCharacterSize(24);
+        text.setFillColor(sf::Color::White);
+        // Center text
+        sf::FloatRect textRect = text.getLocalBounds();
+        text.setOrigin(
+            textRect.left + textRect.width / 2.0f, textRect.top + textRect.height / 2.0f);
+        text.setPosition(pos.x + 150, pos.y + 30);
+    }
+
+    bool isClicked(sf::Vector2i mousePos)
+    {
+        return shape.getGlobalBounds().contains(static_cast<sf::Vector2f>(mousePos));
+    }
+
+    void draw(sf::RenderWindow &window)
+    {
+        window.draw(shape);
+        window.draw(text);
+    }
+};
 
 int main()
 {
-    sf::ContextSettings settings;
-    settings.antiAliasingLevel = 8;
+    sf::RenderWindow window(sf::VideoMode(1200, 900), "E2-E4 Chess Engine", sf::Style::Close);
+    window.setFramerateLimit(60);
 
-    // create the window
-    sf::RenderWindow window(sf::VideoMode({900, 900}), "My window", sf::Style::Default, sf::State::Windowed, settings);
-    window.setFramerateLimit(FRAME_RATE);
+    sf::Font font;
+    if (!font.loadFromFile("assets/fonts/arial.ttf"))
+        return -1;
 
+    GameState state = GameState::Menu;
     ChessBoard board;
-    
-    
-    //auto spriteOpt = board.load("./assets/images/Untitled.png");
-    //sf::Sprite sprite = *spriteOpt;
-    
-    // run the program as long as the window is open
+    sf::Clock deltaClock;
+
+    // Create Menu Buttons
+    MenuButton btnStart("Start 1 vs 1", {450, 350}, font);
+    MenuButton btnQuit("Exit Game", {450, 450}, font);
+
     while (window.isOpen())
     {
-        // check all the window's events that were triggered since the last iteration of the loop
-        while (const std::optional event = window.pollEvent())
+        float dt = deltaClock.restart().asSeconds();
+        sf::Vector2i mousePos = sf::Mouse::getPosition(window);
+
+        sf::Event event;
+        while (window.pollEvent(event))
         {
-            // "close requested" event: we close the window
-            if (event->is<sf::Event::Closed>())
+            if (event.type == sf::Event::Closed)
                 window.close();
 
-            else if (const auto* keyPressed = event->getIf<sf::Event::KeyPressed>())
+            if (state == GameState::Menu)
             {
-                if (keyPressed->scancode == sf::Keyboard::Scancode::Escape)
-                    window.close();
+                if (event.type == sf::Event::MouseButtonPressed &&
+                    event.mouseButton.button == sf::Mouse::Left)
+                {
+                    if (btnStart.isClicked(mousePos))
+                        state = GameState::Playing;
+                    if (btnQuit.isClicked(mousePos))
+                        window.close();
+                }
             }
-            if (const auto* mouseMoved = event->getIf<sf::Event::MouseMoved>())
+            else if (state == GameState::Playing)
             {
-                //std::cout << "new mouse y: " << mouseMoved->position.y << std::endl;
-                //std::cout << "new mouse x: " << mouseMoved->position.x << std::endl;
-                board.setColor(mouseMoved->position);
-                
+                if (event.type == sf::Event::MouseMoved)
+                {
+                    board.handleHover(mousePos);
+                }
+                if (event.type == sf::Event::MouseButtonPressed &&
+                    event.mouseButton.button == sf::Mouse::Left)
+                {
+                    board.handleClick(mousePos);
+                }
             }
-            //sf::Vector2i localPosition = sf::Mouse::getPosition(window);
-            //if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left))
-            
         }
 
-        // clear the window with black color
-        window.clear();
+        window.clear(sf::Color(30, 33, 35));
 
-        // draw everything here...
-       
-        board.draw(window);
-        
-        // end the current frame
-        window.display();
-        
-    }
-    
-}
-
-// to pause and resume
-        //if (event->is<sf::Event::FocusLost>())
-        //    myGame.pause();
-        //
-        //if (event->is<sf::Event::FocusGained>())
-        //    myGame.resume();
-
-        /*if (const auto* mouseButtonPressed = event->getIf<sf::Event::MouseButtonPressed>())
+        if (state == GameState::Menu)
         {
-            if (mouseButtonPressed->button == sf::Mouse::Button::Right)
-            {
-                std::cout << "the right button was pressed" << std::endl;
-                std::cout << "mouse x: " << mouseButtonPressed->position.x << std::endl;
-                std::cout << "mouse y: " << mouseButtonPressed->position.y << std::endl;
-            }
-        }*/
+            btnStart.draw(window);
+            btnQuit.draw(window);
+        }
+        else if (state == GameState::Playing)
+        {
+            board.update(dt);
+            board.draw(window);
+        }
 
-        // modify the linking and including
+        window.display();
+    }
+    return 0;
+}
