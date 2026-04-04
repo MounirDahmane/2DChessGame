@@ -1,83 +1,66 @@
 # E2-E4 Chess Engine
 
-A high-performance, modular 2D Chess Game built with C++ and SFML. This project focuses on clean software architecture, separating the graphical user interface from the core movement and validation logic.
+A high-performance, fully featured 2D chess engine built with C++ and SFML.
+Designed with a modular architecture, asynchronous AI, smooth animations, and a complete set of gameplay tools for a polished chess experience.
 
-## 🚀 Features
+<p align="center">
+  <img src="docs/gameplay.gif" alt="Gameplay Demo" width="480" />
+</p>
 
-### Core Gameplay
-- **Full Rule Set:** Includes standard moves, Castling, and En Passant.
-- **Movement Engine:** Validates moves in real-time, preventing players from entering or remaining in Check.
-- **Game States:** Main Menu with 1vs1 mode and a dedicated game over state.
-- **Pawn Promotion:** Automatic promotion to Queen upon reaching the final rank.
+## Features
 
-### Advanced UI/UX
-- **Symmetric Sidebar:** A dual-panel interface tracking timers, material score, and captured pieces for both players.
-- **Visual Cues:**
-  - **Turn Indicator:** A vibrant Cyan bar highlights the active player.
-  - **Dynamic Hints:** Black circles for quiet moves, Red circles for captures.
-  - **Check Alert:** Red inner-glow on the board when a King is under attack.
-  - **Winner Glow:** The victorious player's timer and name glow in Gold.
+### Core Engine
 
-## 📂 Project Structure
+* Full chess rules support, including castling, en passant, and pawn promotion.
+* Advanced draw detection with stalemate, the 50-move rule, and threefold repetition.
+* Minimax AI with alpha-beta pruning, positional evaluation tables, and adjustable difficulty.
+* Multithreaded AI execution to keep the UI responsive and avoid freezing during computation.
 
-The project follows a refactored, modular design for better maintainability:
+### Gameplay and UI
 
+* Drag-and-drop movement with traditional click-to-move support.
+* Smooth piece sliding animations and screen shake effects for captures, checks, and checkmates.
+* Dual-sidebar layout with match timers, material score, captured pieces, and live move history.
+* Clear visual and audio feedback, including:
+
+  * Red highlight when the king is in check.
+  * Move hints for quiet moves and captures.
+  * Turn indicators and an “AI is thinking...” status display.
+  * Sound effects for moves, captures, and checks.
+
+### Tools and Customization
+
+* Time controls with 1, 3, 5, and 10 minute modes, plus optional +5s increment.
+* Multiple board themes, including Classic, Green, and Blue.
+* Undo move support for quick correction and analysis.
+* PGN export for saving and reviewing games externally.
+* Main menu for local PvP, playing against the computer, and managing settings.
+
+## Project Structure
+
+The codebase is organized around a modular, refactored design for maintainability and clarity:
+
+```text
+include/Constants.hpp   — Centralized configuration for colors, UI sizing, and piece values
+include/ChessBoard.hpp  — Class definitions, async threading, and game state management
+src/ChessBoard.cpp      — UI rendering, AI execution, animations, and input handling
+src/MoveLogic.cpp       — Move validation, check simulation, and pathfinding logic
+src/main.cpp            — Application entry point and main game loop
 ```
 
-include/Constants.hpp   — Centralized configuration (Colors, UI sizing, Piece values)
-include/ChessBoard.hpp  — Class definitions and state management
-src/ChessBoard.cpp      — UI rendering, input handling, and sidebar management
-src/MoveLogic.cpp       — The "Brain": move validation, check simulation, and pathfinding
-src/main.cpp            — Application entry point and Game State Machine
+## Architecture
 
-````
+The project separates responsibilities into focused components:
 
-## 🛠️ Prerequisites
+* **Rendering and input** are handled independently from move validation.
+* **Game logic** is isolated from the user interface.
+* **AI computation** runs asynchronously to preserve smooth gameplay.
+* **Shared constants and configuration** are centralized to simplify maintenance and tuning.
 
-To build this project, you need the **SFML 2.6.1** development libraries installed on your system.
+## Highlights
 
-**On Ubuntu/Debian:**
-
-```bash
-sudo apt update
-sudo apt install libsfml-dev
-````
-
-## 🏗️ Building and Running
-
-Clone the repository:
-
-```bash
-git clone https://github.com/yourusername/2DChessGame.git
-cd 2DChessGame
-```
-
-Run the provided build script:
-
-```bash
-chmod +x run.sh
-./run.sh
-```
-
-**Note:** The `build/` directory is ignored by Git to keep the repository clean and portable.
-
-## 🧹 Code Quality
-
-The project follows the **Allman brace style** and is strictly formatted using **clang-format**.
-
-To format the entire project, run:
-
-```bash
-find . -type f -name "*.cpp" -o -name "*.hpp" | xargs clang-format -i -style=file
-```
-
-## 🗺️ Roadmap
-
-* [ ] Pawn Promotion Menu: Manual selection of Queen, Knight, Rook, or Bishop
-* [ ] PGN Move Log: A scrollable history of moves in the sidebar
-* [ ] AI Integration: Minimax algorithm with Alpha-Beta pruning
-* [ ] Piece Animations: Linear interpolation for smooth piece movement
-
----
-
-**Tech Stack:** C++, SFML, CMake, Clang-Format
+* Clean and scalable C++ design
+* Responsive SFML-based 2D interface
+* Professional chess mechanics
+* Background AI processing
+* Smooth gameplay presentation

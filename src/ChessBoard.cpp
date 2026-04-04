@@ -1,5 +1,4 @@
 #include "ChessBoard.hpp"
-
 #include <algorithm>
 #include <climits>
 #include <cmath>
@@ -7,84 +6,121 @@
 #include <iomanip>
 #include <iostream>
 #include <sstream>
-#include <vector>
+#include <fstream> 
 
-#include "ChessBoard.hpp"
-#include <cmath>
-#include <ctime>
-#include <iomanip>
-#include <iostream>
-#include <sstream>
-#include <algorithm>
-#include <climits>
-#include <vector>
-
-// Piece-Square Tables for AI
-const int pawnTable[64] = {
-    0,  0,  0,  0,  0,  0,  0,  0,
-    50, 50, 50, 50, 50, 50, 50, 50,
-    10, 10, 20, 30, 30, 20, 10, 10,
-     5,  5, 10, 25, 25, 10,  5,  5,
-     0,  0,  0, 20, 20,  0,  0,  0,
-     5, -5,-10,  0,  0,-10, -5,  5,
-     5, 10, 10,-20,-20, 10, 10,  5,
-     0,  0,  0,  0,  0,  0,  0,  0
+static const int PAWN_TABLE[64] = {
+    0,   0,   0,   0,   0,   0,   0,   0,
+    50,  50,  50,  50,  50,  50,  50,  50,
+    10,  10,  20,  30,  30,  20,  10,  10,
+    5,   5,   10,  25,  25,  10,  5,   5,
+    0,   0,   0,   20,  20,  0,   0,   0,
+    5,   -5,  -10, 0,   0,   -10, -5,  5,
+    5,   10,  10,  -20, -20, 10,  10,  5,
+    0,   0,   0,   0,   0,   0,   0,   0
 };
 
-const int knightTable[64] = {
-    -50,-40,-30,-30,-30,-30,-40,-50,
-    -40,-20,  0,  0,  0,  0,-20,-40,
-    -30,  0, 10, 15, 15, 10,  0,-30,
-    -30,  5, 15, 20, 20, 15,  5,-30,
-    -30,  0, 15, 20, 20, 15,  0,-30,
-    -30,  5, 10, 15, 15, 10,  5,-30,
-    -40,-20,  0,  5,  5,  0,-20,-40,
-    -50,-40,-30,-30,-30,-30,-40,-50
+static const int KNIGHT_TABLE[64] = {
+    -50, -40, -30, -30, -30, -30, -40, -50,
+    -40, -20, 0,   0,   0,   0,   -20, -40,
+    -30, 0,   10,  15,  15,  10,  0,   -30,
+    -30, 5,   15,  20,  20,  15,  5,   -30,
+    -30, 0,   15,  20,  20,  15,  0,   -30,
+    -30, 5,   10,  15,  15,  10,  5,   -30,
+    -40, -20, 0,   5,   5,   0,   -20, -40,
+    -50, -40, -30, -30, -30, -30, -40, -50
 };
 
 ChessBoard::ChessBoard() {
     std::srand(static_cast<unsigned int>(std::time(nullptr)));
     moveHintCircle.setRadius(15.0f);
     moveHintCircle.setOrigin(15.0f, 15.0f);
+    shouldExit = false;
+    
     loadAssets();
     initLabels();
+    setupMenuUI();
+    setupInGameUI();
 
     for (int i = 0; i < 64; ++i) {
-        auto &s = squares.emplace_back(sf::Vector2f(Chess::PIXEL_WIDTH, Chess::PIXEL_WIDTH));
+        auto& s = squares.emplace_back(sf::Vector2f(Chess::PIXEL_WIDTH, Chess::PIXEL_WIDTH));
         s.setPosition((i % 8) * Chess::PIXEL_WIDTH + Chess::OFFSET_X,
                       (i / 8) * Chess::PIXEL_WIDTH + Chess::OFFSET_Y);
         s.setFillColor(((i / 8 + i % 8) % 2 == 0) ? Chess::WHITE_SQUARE : Chess::BLACK_SQUARE);
     }
 
-    // --- Menu UI Setup ---
-    pvpButton.setSize({360, 80});
+    resetGame();
+}
+
+void ChessBoard::setupMenuUI() {
+    float centerX = Chess::WINDOW_WIDTH / 2.0f;
+
+    pvpButton.setSize({340, 70});
     pvpButton.setFillColor(sf::Color(45, 45, 45));
     pvpButton.setOutlineThickness(2);
     pvpButton.setOutlineColor(sf::Color::White);
-    pvpButton.setPosition(420, 380);
+    
+    aiButton = diffButton = timeButton = exitButton = pvpButton;
+    
+    pvpButton.setPosition(centerX - 170, 260);
+    aiButton.setPosition(centerX - 170, 360);
+    diffButton.setPosition(centerX - 170, 460);
+    timeButton.setPosition(centerX - 170, 560);
+    exitButton.setPosition(centerX - 170, 660);
 
-    aiButton = pvpButton;
-    aiButton.setPosition(420, 490);
+    pvpText.setFont(font); pvpText.setString("LOCAL PVP"); pvpText.setCharacterSize(28);
+    centerText(pvpText, centerX, 295);
 
-    pvpText.setFont(font);
-    pvpText.setString("PLAYER VS PLAYER");
-    pvpText.setCharacterSize(24);
-    pvpText.setOrigin(pvpText.getLocalBounds().width / 2.0f, 0);
-    pvpText.setPosition(600, 405);
+    aiText.setFont(font); aiText.setString("VS COMPUTER"); aiText.setCharacterSize(28);
+    centerText(aiText, centerX, 395);
 
-    aiText = pvpText;
-    aiText.setString("PLAYER VS COMPUTER");
-    aiText.setOrigin(aiText.getLocalBounds().width / 2.0f, 0);
-    aiText.setPosition(600, 515);
+    diffText.setFont(font); diffText.setString("AI: MEDIUM"); diffText.setCharacterSize(28);
+    centerText(diffText, centerX, 495);
 
-    menuTitle.setFont(font);
-    menuTitle.setString("CHESS 2D");
-    menuTitle.setCharacterSize(100);
-    menuTitle.setFillColor(Chess::WINNER_GOLD);
-    menuTitle.setOrigin(menuTitle.getLocalBounds().width / 2.0f, 0);
-    menuTitle.setPosition(600, 150);
+    timeText.setFont(font); timeText.setString("TIMER: 10 MIN"); timeText.setCharacterSize(28);
+    centerText(timeText, centerX, 595);
 
-    resetGame();
+    exitText.setFont(font); exitText.setString("EXIT GAME"); exitText.setCharacterSize(28);
+    exitText.setFillColor(sf::Color(231, 76, 60)); 
+    centerText(exitText, centerX, 695);
+
+    menuTitle.setFont(font); menuTitle.setString("CHESS 2D"); menuTitle.setCharacterSize(100);
+    menuTitle.setFillColor(sf::Color(241, 196, 15));
+    centerText(menuTitle, centerX, 140);
+}
+
+void ChessBoard::setupInGameUI() {
+    undoButton.setSize({150, 40});
+    undoButton.setFillColor(sf::Color(60, 60, 60));
+    
+    // Changed 520 to 480 (Moved UP)
+    undoButton.setPosition(Chess::SIDEBAR_X + 75, 480); 
+    undoText.setFont(font); undoText.setString("UNDO MOVE");
+    undoText.setCharacterSize(16);
+    // Changed 540 to 500 (Moved UP to stay centered in the button)
+    centerText(undoText, Chess::SIDEBAR_X + 150, 500); 
+
+    menuButton = undoButton;
+    // Changed 570 to 530 (Moved UP)
+    menuButton.setPosition(Chess::SIDEBAR_X + 75, 530);
+    menuBtnText = undoText; menuBtnText.setString("MAIN MENU");
+    // Changed 590 to 550 (Moved UP to stay centered in the button)
+    centerText(menuBtnText, Chess::SIDEBAR_X + 150, 550);
+
+    promoBox.setSize({400, 100});
+    promoBox.setFillColor(sf::Color(40, 40, 40, 240));
+    promoBox.setOutlineThickness(3);
+    promoBox.setOutlineColor(sf::Color(241, 196, 15));
+    promoBox.setOrigin(200, 50);
+    promoBox.setPosition(450, 450);
+
+    thinkingText.setFont(font);
+    thinkingText.setCharacterSize(18);
+    thinkingText.setFillColor(sf::Color::Cyan);
+}
+void ChessBoard::centerText(sf::Text& text, float x, float y) {
+    sf::FloatRect bounds = text.getLocalBounds();
+    text.setOrigin(bounds.left + bounds.width / 2.0f, bounds.top + bounds.height / 2.0f);
+    text.setPosition(x, y);
 }
 
 void ChessBoard::resetGame() {
@@ -98,28 +134,57 @@ void ChessBoard::resetGame() {
          1,  1,  1,  1,  1,  1,  1,  1,
          5,  4,  3,  9,  7,  3,  4,  5
     };
-    isWhiteTurn = true;
-    isCheckmate = false;
-    inCheck = false;
-    whiteTime = 600.0f;
-    blackTime = 600.0f;
-    whiteScore = 0; 
-    blackScore = 0;
-    capturedByWhite.clear();
-    capturedByBlack.clear();
-    moveHistory.clear();
-    wKMove = wRLMove = wRRMove = bKMove = bRLMove = bRRMove = false;
-    enPassantIndex = -1;
-    syncPiecesWithBoard();
+    renderBoardState = boardState; 
+    isAiThinking = false;
+    isWhiteTurn = true; inCheck = false; isCheckmate = false; isStalemate = false;
+    isPromoting = false; promotionIndex = -1; enPassantIndex = -1;
+    isAnimating = false;
+    gameStarted = false; // Prevents timer decrementing early
+    
+    whiteTime = selectedTime * 60.0f; 
+    blackTime = selectedTime * 60.0f; 
+    
+    whiteScore = 0; blackScore = 0;
+    whiteKingMoved = whiteRookRightMoved = whiteRookLeftMoved = false;
+    blackKingMoved = blackRookRightMoved = blackRookLeftMoved = false;
+    
+    capturedByWhite.clear(); capturedByBlack.clear(); moveHistory.clear(); stateHistory.clear();
+    possibleMoves.clear(); selectedIndex = -1;
 }
+
+// =================================================================================
+// UPDATE & THREADING LOGIC
+// =================================================================================
 
 void ChessBoard::update(float dt) {
     if (shakeTimer > 0) shakeTimer -= dt;
     else { shakeTimer = 0.0f; shakeIntensity = 0.0f; }
 
-    if (currentState == GameState::MENU || isCheckmate) return;
+    if (isAnimating) {
+        animProgress += dt / 0.15f; 
+        if (animProgress >= 1.0f) isAnimating = false;
+        return; 
+    }
 
-    if (!isPromoting) {
+    if (currentState == GameState::MENU || isCheckmate || isStalemate) return;
+
+    if (isAiGame && !isWhiteTurn && !isPromoting) {
+        if (!isAiThinking) {
+            isAiThinking = true; 
+            aiFuture = std::async(std::launch::async, &ChessBoard::calculateAiMove, this);
+        } 
+        else if (aiFuture.wait_for(std::chrono::seconds(0)) == std::future_status::ready) {
+            Move bestMove = aiFuture.get();
+            isAiThinking = false;
+            
+            if (bestMove.from != -1) {
+                executeMoveWithEffects(bestMove.from, bestMove.to);
+            }
+        }
+    }
+
+    // FIX: Only ticks timer down if a move has been made (gameStarted = true)
+    if (!isPromoting && !isAiThinking && gameStarted) {
         if (isWhiteTurn) whiteTime -= dt;
         else blackTime -= dt;
     }
@@ -128,285 +193,403 @@ void ChessBoard::update(float dt) {
         whiteTime = std::max(0.0f, whiteTime);
         blackTime = std::max(0.0f, blackTime);
         isCheckmate = true;
-        triggerShake(3.0f, 0.4f);
+        triggerShake(3.0f, 0.5f);
     }
 }
 
-void ChessBoard::draw(sf::RenderWindow &target) {
-    if (currentState == GameState::MENU) {
-        target.setView(target.getDefaultView());
-        target.draw(sf::Sprite(backgroundTexture));
-        target.draw(menuTitle);
-        target.draw(pvpButton);
-        target.draw(aiButton);
-        target.draw(pvpText);
-        target.draw(aiText);
-        return;
-    }
+// =================================================================================
+// DRAWING LOGIC
+// =================================================================================
 
-    // Apply Shake
-    sf::View currentView = target.getDefaultView();
-    if (shakeTimer > 0) {
-        float rx = (static_cast<float>(std::rand() % 10) - 5.0f) * shakeIntensity;
-        float ry = (static_cast<float>(std::rand() % 10) - 5.0f) * shakeIntensity;
-        currentView.move(rx, ry);
-    }
-    target.setView(currentView);
+void ChessBoard::draw(sf::RenderWindow& target) {
+    if (currentState == GameState::MENU) drawMenu(target);
+    else drawBoard(target);
+}
 
+void ChessBoard::drawMenu(sf::RenderWindow& target) {
+    target.setView(target.getDefaultView());
     target.draw(sf::Sprite(backgroundTexture));
-    for (auto &s : squares) target.draw(s);
-    for (auto &l : labels) target.draw(l);
-
-    // Sidebar Panels
-    sf::RectangleShape topPanel(sf::Vector2f(Chess::SIDEBAR_WIDTH, 450));
-    topPanel.setPosition(Chess::SIDEBAR_X, 0);
-    topPanel.setFillColor(Chess::SIDEBAR_PANEL_BLACK);
-    target.draw(topPanel);
-
-    sf::RectangleShape bottomPanel(sf::Vector2f(Chess::SIDEBAR_WIDTH, 450));
-    bottomPanel.setPosition(Chess::SIDEBAR_X, 450);
-    bottomPanel.setFillColor(Chess::SIDEBAR_PANEL_WHITE);
-    target.draw(bottomPanel);
-
-    sf::RectangleShape turnIndicator(sf::Vector2f(8, 450));
-    turnIndicator.setFillColor(Chess::TURN_COLOR);
-    turnIndicator.setPosition(Chess::SIDEBAR_X, isWhiteTurn ? 450 : 0);
-    if (!isCheckmate) target.draw(turnIndicator);
-
-    sf::Text ui; ui.setFont(font);
-    auto fmt = [](float t) {
-        int m = (int)t / 60, s = (int)t % 60;
-        std::stringstream ss;
-        ss << m << ":" << std::setw(2) << std::setfill('0') << s;
-        return ss.str();
-    };
-
-    // --- Black Zone (Top) ---
-    bool blackWins = (isCheckmate && (isWhiteTurn || whiteTime <= 0));
-    ui.setCharacterSize(55);
-    ui.setFillColor(blackWins ? Chess::WINNER_GOLD : sf::Color::White);
-    ui.setString(fmt(blackTime));
-    ui.setOrigin(ui.getLocalBounds().width / 2, 0);
-    ui.setPosition(Chess::SIDEBAR_X + 150, 40);
-    target.draw(ui);
-
-    if (blackWins) {
-        ui.setCharacterSize(22); ui.setString("WINNER");
-        ui.setOrigin(ui.getLocalBounds().width / 2, 0);
-        ui.setPosition(Chess::SIDEBAR_X + 150, 15);
-        target.draw(ui);
-    }
+    target.draw(menuTitle); 
+    target.draw(pvpButton); target.draw(aiButton); target.draw(diffButton);
+    target.draw(timeButton); target.draw(exitButton);
     
-    // Black Score & Captures
-    ui.setOrigin(0, 0); ui.setCharacterSize(18); ui.setFillColor(sf::Color(180, 180, 180));
-    ui.setString("Score: +" + std::to_string(blackScore));
-    ui.setPosition(Chess::SIDEBAR_X + 25, 115);
-    target.draw(ui);
+    target.draw(pvpText); target.draw(aiText); target.draw(diffText);
+    target.draw(timeText); target.draw(exitText);
+}
 
-    for (size_t i = 0; i < capturedByBlack.size(); ++i) {
-        sf::Sprite s(textureMap[capturedByBlack[i]]);
-        s.setScale(0.6f, 0.6f);
-        s.setPosition(Chess::SIDEBAR_X + 25 + (i % 5) * 52, 145 + (i / 5) * 55);
-        target.draw(s);
+void ChessBoard::drawBoard(sf::RenderWindow& target) {
+    applyScreenShake(target);
+    target.draw(sf::Sprite(backgroundTexture));
+    for (auto& s : squares) target.draw(s);
+
+    if (inCheck && !isCheckmate && !isStalemate) {
+        int kingIdx = -1;
+        int8_t targetKing = isWhiteTurn ? Chess::WHITE_KING : Chess::BLACK_KING;
+        for (int i = 0; i < 64; ++i) {
+            if (renderBoardState[i] == targetKing) { kingIdx = i; break; }
+        }
+        if (kingIdx != -1) {
+            sf::RectangleShape danger(sf::Vector2f(Chess::PIXEL_WIDTH, Chess::PIXEL_WIDTH));
+            danger.setPosition(squares[kingIdx].getPosition());
+            danger.setFillColor(sf::Color(255, 0, 0, 120)); 
+            target.draw(danger);
+        }
     }
 
-    // --- White Zone (Bottom) ---
-    bool whiteWins = (isCheckmate && (!isWhiteTurn || blackTime <= 0));
-    ui.setCharacterSize(55);
-    ui.setFillColor(whiteWins ? Chess::WINNER_GOLD : sf::Color::White);
-    ui.setString(fmt(whiteTime));
-    ui.setOrigin(ui.getLocalBounds().width / 2, 0);
-    ui.setPosition(Chess::SIDEBAR_X + 150, 785);
-    target.draw(ui);
+    for (auto& l : labels) target.draw(l);
+    drawSidebar(target);
 
-    if (whiteWins) {
-        ui.setCharacterSize(22); ui.setString("WINNER");
-        ui.setOrigin(ui.getLocalBounds().width / 2, 0);
-        ui.setPosition(Chess::SIDEBAR_X + 150, 855);
-        target.draw(ui);
-    }
-
-    // White Score & Captures
-    ui.setOrigin(0, 0); ui.setCharacterSize(18); ui.setFillColor(sf::Color(180, 180, 180));
-    ui.setString("Score: +" + std::to_string(whiteScore));
-    ui.setPosition(Chess::SIDEBAR_X + 25, 755);
-    target.draw(ui);
-
-    for (size_t i = 0; i < capturedByWhite.size(); ++i) {
-        sf::Sprite s(textureMap[capturedByWhite[i]]);
-        s.setScale(0.6f, 0.6f);
-        s.setPosition(Chess::SIDEBAR_X + 25 + (i % 5) * 52, 600 + (i / 5) * 55);
-        target.draw(s);
-    }
-
-    // Move Log
-    ui.setCharacterSize(16); ui.setFillColor(sf::Color(150, 150, 150));
-    for (size_t i = 0; i < moveHistory.size(); ++i) {
-        ui.setString(moveHistory[i]);
-        ui.setPosition(Chess::SIDEBAR_X + 115, 310 + (i * 20));
-        target.draw(ui);
-    }
-
-    // Pieces and Selection
     if (selectedIndex != -1) {
-        sf::RectangleShape s(sf::Vector2f(100, 100));
-        s.setPosition(squares[selectedIndex].getPosition());
-        s.setFillColor(Chess::SELECT_COLOR);
-        target.draw(s);
+        sf::RectangleShape highlight(sf::Vector2f(Chess::PIXEL_WIDTH, Chess::PIXEL_WIDTH));
+        highlight.setPosition(squares[selectedIndex].getPosition());
+        highlight.setFillColor(Chess::SELECT_COLOR);
+        target.draw(highlight);
     }
-    for (const auto &hint : possibleMoves) {
+
+    for (const auto& hint : possibleMoves) {
         moveHintCircle.setPosition(squares[hint.index].getPosition() + sf::Vector2f(50, 50));
         moveHintCircle.setFillColor(hint.isCapture ? Chess::HINT_CAPTURE : Chess::HINT_QUIET);
         target.draw(moveHintCircle);
     }
-    for (auto &p : pieceSprites) target.draw(p);
 
-    if (isPromoting) {
-        sf::RectangleShape overlay(sf::Vector2f(1200, 900));
-        overlay.setFillColor(sf::Color(0, 0, 0, 180));
-        target.setView(target.getDefaultView());
-        target.draw(overlay);
-        // [Promotion Choice Rendering here]
+    drawPieces(target);
+
+    if (isAnimating) {
+        sf::Vector2f start = squares[animFrom].getPosition();
+        sf::Vector2f end = squares[animTo].getPosition();
+        animSprite.setPosition(start + (end - start) * animProgress);
+        target.draw(animSprite);
     }
+
+    if (isPromoting) drawPromotionDialog(target);
     target.setView(target.getDefaultView());
 }
 
-void ChessBoard::handleClick(const sf::Vector2i &mPos) {
-    if (currentState == GameState::MENU) {
-        if (pvpButton.getGlobalBounds().contains(sf::Vector2f(mPos))) {
-            resetGame(); 
-            setAiMode(false); 
-            currentState = GameState::PLAYING;
-        } else if (aiButton.getGlobalBounds().contains(sf::Vector2f(mPos))) {
-            resetGame(); 
-            setAiMode(true); 
-            currentState = GameState::PLAYING;
-        }
-        return; // This return is crucial so you don't "click" the board behind the menu
+void ChessBoard::drawSidebar(sf::RenderWindow& target) {
+    sf::RectangleShape topPanel(sf::Vector2f(Chess::SIDEBAR_WIDTH, 450));
+    topPanel.setPosition(Chess::SIDEBAR_X, 0); topPanel.setFillColor(Chess::SIDEBAR_PANEL_BLACK);
+    target.draw(topPanel);
+
+    sf::RectangleShape bottomPanel(sf::Vector2f(Chess::SIDEBAR_WIDTH, 450));
+    bottomPanel.setPosition(Chess::SIDEBAR_X, 450); bottomPanel.setFillColor(Chess::SIDEBAR_PANEL_WHITE);
+    target.draw(bottomPanel);
+
+    sf::RectangleShape turnLine(sf::Vector2f(8, 450));
+    turnLine.setFillColor(sf::Color::Cyan);
+    turnLine.setPosition(Chess::SIDEBAR_X, isWhiteTurn ? 450 : 0);
+    if (!isCheckmate && !isStalemate) target.draw(turnLine);
+
+    sf::Text ui; ui.setFont(font);
+    auto fmt = [](float t) {
+        int m = (int)t / 60, s = (int)t % 60;
+        std::stringstream ss; ss << m << ":" << std::setw(2) << std::setfill('0') << s;
+        return ss.str();
+    };
+
+    std::string bMessage = "", wMessage = "";
+    if (isStalemate) {
+        bMessage = wMessage = "DRAW: STALEMATE";
+    } else if (isCheckmate) {
+        if (isWhiteTurn || whiteTime <= 0) bMessage = "WINNER";
+        else wMessage = "WINNER";
     }
+
+    // Black Zone
+    ui.setCharacterSize(55); ui.setFillColor((bMessage != "") ? sf::Color(241, 196, 15) : sf::Color::White);
+    ui.setString(fmt(blackTime)); centerText(ui, Chess::SIDEBAR_X + 150, 70);
+    target.draw(ui);
     
+    if (bMessage != "") {
+        ui.setCharacterSize(20); ui.setString(bMessage); centerText(ui, Chess::SIDEBAR_X + 150, 25); target.draw(ui);
+    }
+
+    ui.setOrigin(0, 0); 
+    ui.setCharacterSize(18); ui.setFillColor(sf::Color(180, 180, 180));
+    ui.setString("Score: +" + std::to_string(blackScore));
+    ui.setPosition(Chess::SIDEBAR_X + 25, 120); target.draw(ui);
+
+    for (size_t i = 0; i < capturedByBlack.size(); ++i) {
+        sf::Sprite s(textureMap[capturedByBlack[i]]); s.setScale(0.6f, 0.6f);
+        s.setPosition(Chess::SIDEBAR_X + 25 + (i % 5) * 52, 150 + (i / 5) * 55); target.draw(s);
+    }
+
+    // White Zone
+    ui.setCharacterSize(55); ui.setFillColor((wMessage != "") ? sf::Color(241, 196, 15) : sf::Color::White);
+    ui.setString(fmt(whiteTime)); centerText(ui, Chess::SIDEBAR_X + 150, 815);
+    target.draw(ui);
+
+    if (wMessage != "") {
+        ui.setCharacterSize(20); ui.setString(wMessage); centerText(ui, Chess::SIDEBAR_X + 150, 875); target.draw(ui);
+    }
+
+    ui.setOrigin(0, 0);
+    ui.setCharacterSize(18); ui.setFillColor(sf::Color(100, 100, 100));
+    ui.setString("Score: +" + std::to_string(whiteScore));
+    ui.setPosition(Chess::SIDEBAR_X + 25, 750); target.draw(ui);
+
+    for (size_t i = 0; i < capturedByWhite.size(); ++i) {
+        sf::Sprite s(textureMap[capturedByWhite[i]]); s.setScale(0.6f, 0.6f);
+        s.setPosition(Chess::SIDEBAR_X + 25 + (i % 5) * 52, 690 - (i / 5) * 55); target.draw(s);
+    }
+
+    if (!stateHistory.empty() && !isCheckmate && !isStalemate) {
+        target.draw(undoButton); target.draw(undoText);
+    }
+    target.draw(menuButton); target.draw(menuBtnText);
+
+    if (isAiThinking) {
+        thinkingText.setString("AI IS THINKING...");
+        centerText(thinkingText, Chess::SIDEBAR_X + 150, 480);
+        target.draw(thinkingText);
+    }
+
+    ui.setCharacterSize(16); ui.setFillColor(sf::Color(150, 150, 150));
+    for (size_t i = 0; i < moveHistory.size(); ++i) {
+        ui.setString(moveHistory[i]);
+        ui.setPosition(Chess::SIDEBAR_X + 120, 290 + (i * 20)); // Properly lowered move logs
+        target.draw(ui);
+    }
+}
+
+void ChessBoard::drawPieces(sf::RenderWindow& target) {
+    for (int i = 0; i < 64; ++i) {
+        if (renderBoardState[i] == 0) continue;
+        if (isAnimating && i == animTo) continue; 
+        if (isDragging && i == dragIndex) continue; 
+
+        sf::Sprite sprite(textureMap[renderBoardState[i]]);
+        sprite.setPosition(squares[i].getPosition());
+        sprite.setScale(2.0f, 2.0f);
+        target.draw(sprite);
+    }
+
+    if (isDragging && dragIndex != -1) {
+        sf::Sprite dragSprite(textureMap[renderBoardState[dragIndex]]);
+        dragSprite.setScale(2.0f, 2.0f);
+        dragSprite.setOrigin(25.f, 25.f); 
+        dragSprite.setPosition(currentMousePos);
+        target.draw(dragSprite);
+    }
+}
+
+void ChessBoard::drawPromotionDialog(sf::RenderWindow& target) {
+    sf::RectangleShape overlay(sf::Vector2f(1200, 900));
+    overlay.setFillColor(sf::Color(0, 0, 0, 180));
+    target.draw(overlay);
+    target.draw(promoBox);
+    for (auto& s : promoSprites) target.draw(s);
+}
+
+// =================================================================================
+// INTERACTION LOGIC
+// =================================================================================
+
+void ChessBoard::handleClick(const sf::Vector2i& mPos) {
     if (currentState == GameState::MENU) {
         if (pvpButton.getGlobalBounds().contains(sf::Vector2f(mPos))) {
-            resetGame(); setAiMode(false); currentState = GameState::PLAYING;
+            setAiMode(false); setGameState(GameState::PLAYING); resetGame();
         } else if (aiButton.getGlobalBounds().contains(sf::Vector2f(mPos))) {
-            resetGame(); setAiMode(true); currentState = GameState::PLAYING;
+            setAiMode(true); setGameState(GameState::PLAYING); resetGame();
+        } else if (diffButton.getGlobalBounds().contains(sf::Vector2f(mPos))) {
+            if (aiDifficulty == AIDifficulty::EASY) { aiDifficulty = AIDifficulty::MEDIUM; diffText.setString("AI: MEDIUM"); }
+            else if (aiDifficulty == AIDifficulty::MEDIUM) { aiDifficulty = AIDifficulty::HARD; diffText.setString("AI: HARD"); }
+            else { aiDifficulty = AIDifficulty::EASY; diffText.setString("AI: EASY"); }
+            centerText(diffText, Chess::WINDOW_WIDTH / 2.0f, 495);
+        } else if (timeButton.getGlobalBounds().contains(sf::Vector2f(mPos))) {
+            if (selectedTime == 1) selectedTime = 3; else if (selectedTime == 3) selectedTime = 5;
+            else if (selectedTime == 5) selectedTime = 10; else selectedTime = 1;
+            timeText.setString("TIMER: " + std::to_string(selectedTime) + " MIN");
+            centerText(timeText, Chess::WINDOW_WIDTH / 2.0f, 595);
+        } else if (exitButton.getGlobalBounds().contains(sf::Vector2f(mPos))) {
+            shouldExit = true; 
         }
         return;
     }
+
+    if (isAnimating || isAiThinking) return; 
 
     if (isPromoting) {
-        // [Handle Promotion Click Logic]
+        for (size_t i = 0; i < promoSprites.size(); ++i) {
+            if (promoSprites[i].getGlobalBounds().contains(sf::Vector2f(mPos))) promoteSelectedPawn(promoOptions[i]);
+        }
         return;
     }
 
+    if (menuButton.getGlobalBounds().contains(sf::Vector2f(mPos))) { setGameState(GameState::MENU); return; }
+    if (isCheckmate || isStalemate) return;
+
+    if (undoButton.getGlobalBounds().contains(sf::Vector2f(mPos))) { performUndo(); return; }
+
     auto idx = getIndexFromMouse(mPos);
-    if (!idx || isCheckmate) return;
+    if (!idx) return;
+    int target_idx = *idx;
 
     if (selectedIndex == -1) {
-        if (boardState[*idx] != 0 && isWhite(boardState[*idx]) == isWhiteTurn) {
-            selectedIndex = *idx; calculatePossibleMoves(selectedIndex);
+        if (boardState[target_idx] != 0 && isWhite(boardState[target_idx]) == isWhiteTurn) {
+            selectedIndex = target_idx; 
+            isDragging = true;
+            dragIndex = target_idx;
+            calculatePossibleMoves(selectedIndex);
         }
     } else {
-        if (validateMove(selectedIndex, *idx)) {
-            int8_t piece = boardState[selectedIndex];
-            bool captureOccurred = (boardState[*idx] != 0 || *idx == enPassantIndex);
-
-            addMoveToLog(selectedIndex, *idx, piece);
-
-            // --- Capture & Scoring Logic ---
-            if (boardState[*idx] != 0) {
-                int val = getPieceValue(boardState[*idx]);
-                if (isWhite(boardState[*idx])) {
-                    capturedByBlack.push_back(boardState[*idx]);
-                    blackScore += val;
-                } else {
-                    capturedByWhite.push_back(boardState[*idx]);
-                    whiteScore += val;
-                }
-            }
-
-            // En Passant Scoring
-            if (std::abs(piece) == 1 && *idx == enPassantIndex) {
-                int victimIdx = (piece > 0) ? *idx + 8 : *idx - 8;
-                int val = getPieceValue(boardState[victimIdx]);
-                if (isWhite(boardState[victimIdx])) {
-                    capturedByBlack.push_back(boardState[victimIdx]);
-                    blackScore += val;
-                } else {
-                    capturedByWhite.push_back(boardState[victimIdx]);
-                    whiteScore += val;
-                }
-                boardState[victimIdx] = 0;
-            }
-
-            // Castling Move Handling
-            if (std::abs(piece) == 7 && std::abs((*idx % 8) - (selectedIndex % 8)) == 2) {
-                if (*idx == 62) { boardState[61] = boardState[63]; boardState[63] = 0; }
-                if (*idx == 58) { boardState[59] = boardState[56]; boardState[56] = 0; }
-                if (*idx == 6)  { boardState[5] = boardState[7];   boardState[7] = 0; }
-                if (*idx == 2)  { boardState[3] = boardState[0];   boardState[0] = 0; }
-            }
-
-            enPassantIndex = -1;
-            if (std::abs(piece) == 1 && std::abs((*idx / 8) - (selectedIndex / 8)) == 2)
-                enPassantIndex = (piece > 0) ? *idx + 8 : *idx - 8;
-
-            // Track piece movement for castling
-            if (selectedIndex == 60) wKMove = true;
-            if (selectedIndex == 63) wRRMove = true;
-            if (selectedIndex == 56) wRLMove = true;
-            if (selectedIndex == 4)  bKMove = true;
-            if (selectedIndex == 7)  bRRMove = true;
-            if (selectedIndex == 0)  bRLMove = true;
-
-            boardState[*idx] = piece;
-            boardState[selectedIndex] = 0;
-
-            if (captureOccurred) { captureSound.play(); triggerShake(1.2f, 0.1f); }
-            else moveSound.play();
-
-            syncPiecesWithBoard();
-            isWhiteTurn = !isWhiteTurn;
-            inCheck = isKingInCheck(isWhiteTurn);
-            
-            if (inCheck && !hasLegalMoves(isWhiteTurn)) {
-                isCheckmate = true; triggerShake(5.0f, 0.4f);
-            } else if (inCheck) triggerShake(2.5f, 0.15f);
-
+        if (validateMove(selectedIndex, target_idx)) {
+            executeMoveWithEffects(selectedIndex, target_idx);
             selectedIndex = -1; possibleMoves.clear();
-        } else if (boardState[*idx] != 0 && isSameTeam(boardState[selectedIndex], boardState[*idx])) {
-            selectedIndex = *idx; calculatePossibleMoves(selectedIndex);
+        } else if (boardState[target_idx] != 0 && isSameTeam(boardState[selectedIndex], boardState[target_idx])) {
+            selectedIndex = target_idx; 
+            isDragging = true;
+            dragIndex = target_idx;
+            calculatePossibleMoves(selectedIndex);
         } else {
             selectedIndex = -1; possibleMoves.clear();
         }
     }
 }
 
-int ChessBoard::getPieceValue(int8_t p) {
-    int v = std::abs(p);
-    if (v == 1) return 1;
-    if (v == 3 || v == 4) return 3;
-    if (v == 5) return 5;
-    if (v == 9) return 9;
-    return 0;
+void ChessBoard::handleRelease(const sf::Vector2i& mPos) {
+    if (!isDragging || isAiThinking) return;
+    isDragging = false;
+
+    auto idx = getIndexFromMouse(mPos);
+    if (idx && *idx != dragIndex) {
+        if (validateMove(dragIndex, *idx)) {
+            executeMoveWithEffects(dragIndex, *idx);
+            selectedIndex = -1;
+            possibleMoves.clear();
+        }
+    }
+    dragIndex = -1;
 }
 
-void ChessBoard::addMoveToLog(int s, int e, int8_t piece) {
-    auto toCoord = [](int idx) {
-        return std::string(1, 'a' + (idx % 8)) + std::to_string(8 - (idx / 8));
-    };
-    moveHistory.push_back(toCoord(s) + " " + toCoord(e));
-    if (moveHistory.size() > 8) moveHistory.erase(moveHistory.begin());
+void ChessBoard::handleHover(const sf::Vector2i& mPos) {
+    if (isAiThinking) return; 
+    currentMousePos = sf::Vector2f(mPos);
+    auto idx = getIndexFromMouse(mPos);
+    hoveredIndex = idx ? *idx : -1;
 }
 
-void ChessBoard::triggerShake(float intensity, float duration) {
-    shakeIntensity = intensity; shakeTimer = duration;
+// =================================================================================
+// UNDO SYSTEM LOGIC
+// =================================================================================
+
+void ChessBoard::saveSnapshot() {
+    StateSnapshot snap;
+    snap.boardState = boardState;
+    snap.isWhiteTurn = isWhiteTurn; snap.inCheck = inCheck; snap.enPassantIndex = enPassantIndex;
+    snap.whiteScore = whiteScore; snap.blackScore = blackScore;
+    snap.whiteKingMoved = whiteKingMoved; snap.whiteRookRightMoved = whiteRookRightMoved; snap.whiteRookLeftMoved = whiteRookLeftMoved;
+    snap.blackKingMoved = blackKingMoved; snap.blackRookRightMoved = blackRookRightMoved; snap.blackRookLeftMoved = blackRookLeftMoved;
+    snap.capturedByWhite = capturedByWhite; snap.capturedByBlack = capturedByBlack;
+    snap.moveHistory = moveHistory;
+    stateHistory.push_back(snap);
 }
 
-// --- AI CORE (Minimax) ---
-void ChessBoard::aiMove() {
+void ChessBoard::performUndo() {
+    if (stateHistory.empty()) return;
+
+    int pops = (isAiGame && stateHistory.size() > 1) ? 2 : 1;
+
+    for(int i = 0; i < pops; ++i) {
+        if (stateHistory.empty()) break;
+        StateSnapshot snap = stateHistory.back();
+        stateHistory.pop_back();
+
+        boardState = snap.boardState;
+        isWhiteTurn = snap.isWhiteTurn; inCheck = snap.inCheck; enPassantIndex = snap.enPassantIndex;
+        whiteScore = snap.whiteScore; blackScore = snap.blackScore;
+        whiteKingMoved = snap.whiteKingMoved; whiteRookRightMoved = whiteRookRightMoved; whiteRookLeftMoved = whiteRookLeftMoved;
+        blackKingMoved = snap.blackKingMoved; blackRookRightMoved = blackRookRightMoved; blackRookLeftMoved = snap.blackRookLeftMoved;
+        capturedByWhite = snap.capturedByWhite; capturedByBlack = snap.capturedByBlack;
+        moveHistory = snap.moveHistory;
+    }
+
+    renderBoardState = boardState; 
+    isCheckmate = false; isStalemate = false; isPromoting = false;
+    selectedIndex = -1; possibleMoves.clear();
+}
+
+// =================================================================================
+// GAME ENGINE & MOVEMENT
+// =================================================================================
+
+void ChessBoard::executeMoveWithEffects(int from, int to) {
+    saveSnapshot();
+
+    gameStarted = true; // Unlocks timer ticking
+
+    int8_t piece = boardState[from];
+    bool capture = (boardState[to] != 0 || to == enPassantIndex);
+
+    animFrom = from; animTo = to; animPieceCode = piece;
+    isAnimating = true; animProgress = 0.0f;
+    animSprite.setTexture(textureMap[piece]);
+    animSprite.setScale(2.f, 2.f);
+
+    handleCapture(to);
+    handleEnPassantCapture(from, to);
+    addMoveToLog(from, to, piece);
+    handleCastling(from, to);
+    updateCastlingRights(from);
+    updateEnPassantSquare(from, to, piece);
+
+    boardState[to] = piece;
+    boardState[from] = 0;
+    
+    renderBoardState = boardState; 
+
+    if (capture) { captureSound.play(); triggerShake(1.5f, 0.15f); } 
+    else moveSound.play();
+
+    isWhiteTurn = !isWhiteTurn;
+    inCheck = isKingInCheck(isWhiteTurn);
+
+    if (std::abs(piece) == 1 && (to / 8 == 0 || to / 8 == 7)) {
+        isPromoting = true; promotionIndex = to;
+        promoSprites.clear(); promoOptions.clear();
+        int8_t mult = (piece > 0) ? 1 : -1;
+        promoOptions = { (int8_t)(9 * mult), (int8_t)(5 * mult), (int8_t)(3 * mult), (int8_t)(4 * mult) };
+        for (int i = 0; i < 4; ++i) {
+            sf::Sprite ps(textureMap[promoOptions[i]]); ps.setScale(2.f, 2.f);
+            
+            // FIX: Lowered position (from 380 -> 400) to fit properly inside the UI Box
+            ps.setPosition(275 + (i * 90), 400); 
+            
+            promoSprites.push_back(ps);
+        }
+
+        if (isAiGame && isWhiteTurn == false) promoteSelectedPawn(-9); 
+        return; 
+    }
+
+    if (inCheck) {
+        checkSound.play(); // FIX: Reactivated check sound
+        if (!hasLegalMoves(isWhiteTurn)) { isCheckmate = true; triggerShake(5.0f, 0.4f); } 
+        else triggerShake(2.5f, 0.2f);
+    } else if (!hasLegalMoves(isWhiteTurn)) {
+        isStalemate = true; 
+    }
+}
+
+void ChessBoard::promoteSelectedPawn(int8_t promotionPiece) {
+    if (promotionIndex != Chess::NO_VALID_INDEX) {
+        boardState[promotionIndex] = promotionPiece;
+        renderBoardState = boardState; 
+        isPromoting = false;
+        promotionIndex = Chess::NO_VALID_INDEX;
+
+        inCheck = isKingInCheck(isWhiteTurn);
+        if (inCheck) { 
+            checkSound.play(); 
+            if (!hasLegalMoves(isWhiteTurn)) { isCheckmate = true; triggerShake(5.0f, 0.4f); }
+            else { triggerShake(2.5f, 0.2f); }
+        }
+        else if (!hasLegalMoves(isWhiteTurn)) { isStalemate = true; }
+    }
+}
+
+Move ChessBoard::calculateAiMove() {
     int bestScore = isWhiteTurn ? INT_MIN : INT_MAX;
-    int bestFrom = -1, bestTo = -1;
+    Move bestMoveObj = {-1, -1, 0, 0, false, false, 0}; 
 
     struct ScoredMove { int s, e, score; };
     std::vector<ScoredMove> moves;
@@ -424,31 +607,33 @@ void ChessBoard::aiMove() {
     }
     std::sort(moves.begin(), moves.end(), [](const ScoredMove& a, const ScoredMove& b) { return a.score > b.score; });
 
+    int depth = static_cast<int>(aiDifficulty);
+
     for (const auto& move : moves) {
         Move m = makeMove(move.s, move.e);
-        int score = minimax(4, !isWhiteTurn, INT_MIN, INT_MAX);
+        int score = minimax(depth - 1, !isWhiteTurn, INT_MIN, INT_MAX);
         undoMove(m);
-        if (isWhiteTurn) { if (score > bestScore) { bestScore = score; bestFrom = move.s; bestTo = move.e; } }
-        else { if (score < bestScore) { bestScore = score; bestFrom = move.s; bestTo = move.e; } }
+        if (isWhiteTurn) { 
+            if (score > bestScore) { bestScore = score; bestMoveObj = {move.s, move.e, 0, 0, false, false, 0}; } 
+        } else { 
+            if (score < bestScore) { bestScore = score; bestMoveObj = {move.s, move.e, 0, 0, false, false, 0}; } 
+        }
     }
-
-    if (bestFrom != -1) {
-        handleClick(sf::Vector2i((bestTo % 8) * Chess::PIXEL_WIDTH + Chess::OFFSET_X + 50,
-                                 (bestTo / 8) * Chess::PIXEL_WIDTH + Chess::OFFSET_Y + 50));
-    }
+    
+    return bestMoveObj; 
 }
 
 int ChessBoard::minimax(int depth, bool isMaximizing, int alpha, int beta) {
-    bool currentCheck = isKingInCheck(isMaximizing);
-    if (!hasLegalMoves(isMaximizing)) return currentCheck ? (isMaximizing ? -20000 : 20000) : 0;
-    if (depth == 0) return evaluateBoard();
+    if (depth <= 0) return evaluateBoard();
 
+    int validMoves = 0;
     if (isMaximizing) {
         int maxEval = INT_MIN;
         for (int s = 0; s < 64; ++s) {
             if (boardState[s] > 0) {
                 for (int e = 0; e < 64; ++e) {
                     if (validateMove(s, e, false)) {
+                        validMoves++;
                         Move m = makeMove(s, e);
                         int eval = minimax(depth - 1, false, alpha, beta);
                         undoMove(m);
@@ -459,6 +644,7 @@ int ChessBoard::minimax(int depth, bool isMaximizing, int alpha, int beta) {
                 }
             }
         }
+        if (validMoves == 0) return isKingInCheck(true) ? -20000 : 0;
         return maxEval;
     } else {
         int minEval = INT_MAX;
@@ -466,6 +652,7 @@ int ChessBoard::minimax(int depth, bool isMaximizing, int alpha, int beta) {
             if (boardState[s] < 0) {
                 for (int e = 0; e < 64; ++e) {
                     if (validateMove(s, e, false)) {
+                        validMoves++;
                         Move m = makeMove(s, e);
                         int eval = minimax(depth - 1, true, alpha, beta);
                         undoMove(m);
@@ -476,6 +663,7 @@ int ChessBoard::minimax(int depth, bool isMaximizing, int alpha, int beta) {
                 }
             }
         }
+        if (validMoves == 0) return isKingInCheck(false) ? 20000 : 0;
         return minEval;
     }
 }
@@ -484,126 +672,168 @@ int ChessBoard::evaluateBoard() {
     int score = 0;
     for (int i = 0; i < 64; ++i) {
         if (boardState[i] == 0) continue;
-        int piece = std::abs(boardState[i]);
-        int val = 0;
-        int tableScore = 0;
-
-        switch (piece) {
-            case 1: val = 100; tableScore = pawnTable[boardState[i] > 0 ? i : (63 - i)]; break;
-            case 3: val = 330; break;
-            case 4: val = 320; tableScore = knightTable[boardState[i] > 0 ? i : (63 - i)]; break;
-            case 5: val = 500; break;
-            case 9: val = 900; break;
-            case 7: val = 20000; break;
-        }
-        score += (boardState[i] > 0) ? (val + tableScore) : -(val + tableScore);
+        score += evaluatePiece(boardState[i], i, isWhite(boardState[i]));
     }
     return score;
 }
 
-ChessBoard::Move ChessBoard::makeMove(int s, int e) {
-    bool isEP = (e == enPassantIndex && std::abs(boardState[s]) == 1);
-    Move m = {s, e, boardState[e], isEP};
-    if (isEP) {
-        int pawnPos = e + (boardState[s] > 0 ? 8 : -8);
-        m.capturedPiece = boardState[pawnPos];
-        boardState[pawnPos] = 0;
+int ChessBoard::evaluatePiece(int8_t piece, int position, bool isWhite) {
+    int val = getPieceValue(piece) * 100; 
+    int tableScore = 0;
+    switch (std::abs(piece)) {
+        case 1: tableScore = PAWN_TABLE[isWhite ? position : (63 - position)]; break;
+        case 4: tableScore = KNIGHT_TABLE[isWhite ? position : (63 - position)]; break;
     }
-    boardState[e] = boardState[s];
-    boardState[s] = 0;
+    return isWhite ? (val + tableScore) : -(val + tableScore);
+}
+
+// FIX: Strictly log the movingPiece so perfect board restoration happens during AI thinking
+Move ChessBoard::makeMove(int s, int e) {
+    bool isEP = (e == enPassantIndex && std::abs(boardState[s]) == 1);
+    Move m = {s, e, boardState[e], boardState[s], isEP, false, 0}; 
+    if (isEP) { 
+        int pawnPos = e + (boardState[s] > 0 ? 8 : -8); 
+        m.capturedPiece = boardState[pawnPos]; 
+        boardState[pawnPos] = 0; 
+    }
+    boardState[e] = boardState[s]; boardState[s] = 0;
     return m;
 }
 
-void ChessBoard::undoMove(ChessBoard::Move m) {
+// FIX: Prevent Ghost pieces by restoring precisely using movingPiece
+void ChessBoard::undoMove(const Move& m) {
     if (m.isEnPassant) {
-        boardState[m.from] = boardState[m.to];
+        boardState[m.from] = m.movingPiece; 
         boardState[m.to] = 0;
-        int pawnPos = m.to + (boardState[m.from] > 0 ? 8 : -8);
-        boardState[pawnPos] = m.capturedPiece;
+        int pawnPos = m.to + (m.movingPiece > 0 ? 8 : -8); boardState[pawnPos] = m.capturedPiece;
     } else {
-        boardState[m.from] = boardState[m.to];
+        boardState[m.from] = m.movingPiece; 
         boardState[m.to] = m.capturedPiece;
     }
 }
 
-void ChessBoard::initLabels()
-{
-    std::string files = "abcdefgh", ranks = "87654321";
-    for (int i = 0; i < 8; ++i)
-    {
-        sf::Text f(files.substr(i, 1), font, 24);
-        f.setPosition(
-            i * Chess::PIXEL_WIDTH + Chess::OFFSET_X + 40,
-            8 * Chess::PIXEL_WIDTH + Chess::OFFSET_Y + 5);
-        f.setFillColor(Chess::LABEL_COLOR);
-        labels.push_back(f);
-        sf::Text r(ranks.substr(i, 1), font, 24);
-        r.setPosition(Chess::OFFSET_X - 35, i * Chess::PIXEL_WIDTH + Chess::OFFSET_Y + 30);
-        r.setFillColor(Chess::LABEL_COLOR);
-        labels.push_back(r);
+int ChessBoard::getPieceValue(int8_t p) const {
+    int v = std::abs(p);
+    if (v == 1) return 1;
+    if (v == 3) return 3;
+    if (v == 4) return 3;
+    if (v == 5) return 5;
+    if (v == 9) return 9;
+    return 0;
+}
+
+void ChessBoard::addMoveToLog(int from, int to, int8_t piece) {
+    auto tC = [](int i) { return std::string(1, 'a' + (i % 8)) + std::to_string(8 - (i / 8)); };
+    moveHistory.push_back(tC(from) + "-" + tC(to));
+    if (moveHistory.size() > 8) moveHistory.erase(moveHistory.begin());
+}
+
+void ChessBoard::triggerShake(float intensity, float duration) { shakeIntensity = intensity; shakeTimer = duration; }
+
+void ChessBoard::applyScreenShake(sf::RenderWindow& target) {
+    sf::View view = target.getDefaultView();
+    if (shakeTimer > 0) {
+        float rx = (static_cast<float>(std::rand() % 10) - 5.0f) * shakeIntensity;
+        float ry = (static_cast<float>(std::rand() % 10) - 5.0f) * shakeIntensity;
+        view.move(rx, ry);
     }
+    target.setView(view);
 }
 
-void ChessBoard::syncPiecesWithBoard()
-{
-    pieceSprites.clear();
-    for (int i = 0; i < 64; ++i)
-    {
-        if (boardState[i] == 0)
-            continue;
-        sf::Sprite s(textureMap[boardState[i]]);
-        s.setPosition(squares[i].getPosition());
-        s.setScale(2.0f, 2.0f);
-        pieceSprites.push_back(s);
+std::optional<int> ChessBoard::getIndexFromMouse(const sf::Vector2i& mousePos) {
+    int col = (mousePos.x - static_cast<int>(Chess::OFFSET_X)) / static_cast<int>(Chess::PIXEL_WIDTH);
+    int row = (mousePos.y - static_cast<int>(Chess::OFFSET_Y)) / static_cast<int>(Chess::PIXEL_WIDTH);
+
+    if (col >= 0 && col < Chess::BOARD_SIZE && row >= 0 && row < Chess::BOARD_SIZE) {
+        return row * Chess::BOARD_SIZE + col;
     }
-}
-
-void ChessBoard::loadAssets()
-{
-    std::unordered_map<int8_t, std::string> fileMap = {
-        {-1, "blackPawn"},
-        {-3, "blackBishop"},
-        {-4, "blackKnight"},
-        {-5, "blackRook"},
-        {-7, "blackKing"},
-        {-9, "blackQueen"},
-        {1, "whitePawn"},
-        {3, "whiteBishop"},
-        {4, "whiteKnight"},
-        {5, "whiteRook"},
-        {7, "whiteKing"},
-        {9, "whiteQueen"}};
-    for (auto const &[code, name] : fileMap)
-        textureMap[code].loadFromFile("assets/images/" + name + ".png");
-
-    backgroundTexture.loadFromFile("assets/images/landscape.jpg");
-    font.loadFromFile("assets/fonts/arial.ttf");
-
-    if (moveBuf.loadFromFile("assets/sounds/move.wav"))
-        moveSound.setBuffer(moveBuf);
-    if (captureBuf.loadFromFile("assets/sounds/capture.wav"))
-        captureSound.setBuffer(captureBuf);
-}
-
-std::optional<int> ChessBoard::getIndexFromMouse(const sf::Vector2i &mPos)
-{
-    int col = (mPos.x - (int)Chess::OFFSET_X) / (int)Chess::PIXEL_WIDTH;
-    int row = (mPos.y - (int)Chess::OFFSET_Y) / (int)Chess::PIXEL_WIDTH;
-    if (col >= 0 && col < 8 && row >= 0 && row < 8)
-        return row * 8 + col;
     return std::nullopt;
 }
 
-void ChessBoard::handleHover(const sf::Vector2i &mPos)
-{
-    auto idx = getIndexFromMouse(mPos);
-    hoveredIndex = idx ? *idx : -1;
+void ChessBoard::calculatePossibleMoves(int from) {
+    possibleMoves.clear();
+    for (int to = 0; to < Chess::BOARD_SQUARES; ++to) {
+        if (validateMove(from, to, false)) {
+            possibleMoves.push_back({to, (boardState[to] != Chess::EMPTY_SQUARE || to == enPassantIndex)});
+        }
+    }
 }
 
-void ChessBoard::calculatePossibleMoves(int s)
-{
-    possibleMoves.clear();
-    for (int i = 0; i < 64; ++i)
-        if (validateMove(s, i, false))
-            possibleMoves.push_back({i, (boardState[i] != 0 || i == enPassantIndex)});
+void ChessBoard::initLabels() {
+    const std::string FILES = "abcdefgh";
+    const std::string RANKS = "87654321";
+
+    for (int i = 0; i < 8; ++i) {
+        sf::Text fileLabel(FILES.substr(i, 1), font, 24);
+        fileLabel.setPosition(i * Chess::PIXEL_WIDTH + Chess::OFFSET_X + 35, 8 * Chess::PIXEL_WIDTH + Chess::OFFSET_Y + 10);
+        fileLabel.setFillColor(Chess::LABEL_COLOR);
+        labels.push_back(fileLabel);
+
+        sf::Text rankLabel(RANKS.substr(i, 1), font, 24);
+        rankLabel.setPosition(Chess::OFFSET_X - 35, i * Chess::PIXEL_WIDTH + Chess::OFFSET_Y + 30);
+        rankLabel.setFillColor(Chess::LABEL_COLOR);
+        labels.push_back(rankLabel);
+    }
+}
+
+void ChessBoard::loadAssets() {
+    std::unordered_map<int8_t, std::string> fileMap = {
+        {Chess::BLACK_PAWN, "blackPawn"}, {Chess::BLACK_BISHOP, "blackBishop"}, {Chess::BLACK_KNIGHT, "blackKnight"},
+        {Chess::BLACK_ROOK, "blackRook"}, {Chess::BLACK_KING, "blackKing"}, {Chess::BLACK_QUEEN, "blackQueen"},
+        {Chess::WHITE_PAWN, "whitePawn"}, {Chess::WHITE_BISHOP, "whiteBishop"}, {Chess::WHITE_KNIGHT, "whiteKnight"},
+        {Chess::WHITE_ROOK, "whiteRook"}, {Chess::WHITE_KING, "whiteKing"}, {Chess::WHITE_QUEEN, "whiteQueen"}
+    };
+
+    for (const auto& [code, name] : fileMap) {
+        std::string path = "assets/images/" + name + ".png";
+        if (!textureMap[code].loadFromFile(path)) std::cerr << "ERROR: Failed to load " << path << std::endl;
+    }
+
+    if (!backgroundTexture.loadFromFile("assets/images/landscape.jpg")) std::cerr << "ERROR: Failed background" << std::endl;
+    if (!font.loadFromFile("assets/fonts/arial.ttf")) std::cerr << "ERROR: Failed font" << std::endl;
+    if (moveSoundBuffer.loadFromFile("assets/sounds/move.wav")) moveSound.setBuffer(moveSoundBuffer);
+    if (captureSoundBuffer.loadFromFile("assets/sounds/capture.wav")) captureSound.setBuffer(captureSoundBuffer);
+    
+    // FIX: Re-activated Check Sound
+    if (checkSoundBuffer.loadFromFile("assets/sounds/check.wav")) checkSound.setBuffer(checkSoundBuffer);
+}
+
+void ChessBoard::handleCapture(int target) {
+    if (boardState[target] != 0) {
+        int8_t victim = boardState[target];
+        if (isWhite(victim)) { capturedByBlack.push_back(victim); blackScore += getPieceValue(victim); } 
+        else { capturedByWhite.push_back(victim); whiteScore += getPieceValue(victim); }
+    }
+}
+
+void ChessBoard::handleEnPassantCapture(int from, int to) {
+    if (std::abs(boardState[from]) == 1 && to == enPassantIndex) {
+        int victimIdx = (boardState[from] > 0) ? to + 8 : to - 8;
+        handleCapture(victimIdx); 
+        boardState[victimIdx] = 0;
+    }
+}
+
+void ChessBoard::handleCastling(int from, int to) {
+    if (std::abs(boardState[from]) == 7 && std::abs((to % 8) - (from % 8)) == 2) {
+        if (to == 62) { boardState[61] = boardState[63]; boardState[63] = 0; }
+        else if (to == 58) { boardState[59] = boardState[56]; boardState[56] = 0; }
+        else if (to == 6)  { boardState[5] = boardState[7]; boardState[7] = 0; }
+        else if (to == 2)  { boardState[3] = boardState[0]; boardState[0] = 0; }
+    }
+}
+
+void ChessBoard::updateCastlingRights(int from) {
+    if (from == 60) whiteKingMoved = true;
+    else if (from == 63) whiteRookRightMoved = true;
+    else if (from == 56) whiteRookLeftMoved = true;
+    else if (from == 4)  blackKingMoved = true;
+    else if (from == 7)  blackRookRightMoved = true;
+    else if (from == 0)  blackRookLeftMoved = true;
+}
+
+void ChessBoard::updateEnPassantSquare(int from, int to, int8_t piece) {
+    enPassantIndex = -1;
+    if (std::abs(piece) == 1 && std::abs((to / 8) - (from / 8)) == 2)
+        enPassantIndex = (piece > 0) ? to + 8 : to - 8;
 }

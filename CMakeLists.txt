@@ -11,12 +11,8 @@ find_package(SFML 2.5 COMPONENTS graphics window system audio REQUIRED)
 # Include the headers folder
 include_directories(include)
 
-# Define Source files
-set(SOURCES 
-    src/main.cpp 
-    src/ChessBoard.cpp
-    src/MoveLogic.cpp
-)
+# Automatically grab all .cpp files directly inside the src/ folder
+file(GLOB SOURCES CONFIGURE_DEPENDS "src/*.cpp")
 
 add_executable(ChessGame ${SOURCES})
 
