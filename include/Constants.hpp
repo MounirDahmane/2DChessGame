@@ -6,10 +6,11 @@
 /**
  * @file Constants.hpp
  * @brief Centralized configuration constants for the E2-E4 Chess Engine.
- * * Contains board dimensions, piece encodings, material values, visual colors, 
+ * * Contains board dimensions, piece encodings, material values, visual colors,
  * and configuration settings to ensure consistency across the application.
  */
-namespace Chess {
+namespace Chess
+{
 
 // ============================================================================
 // WINDOW & BOARD DIMENSIONS
@@ -49,54 +50,54 @@ static constexpr int BOARD_SQUARES = 64;
 
 static constexpr int8_t EMPTY_SQUARE = 0;
 
-static constexpr int8_t WHITE_PAWN   = 1;
+static constexpr int8_t WHITE_PAWN = 1;
 static constexpr int8_t WHITE_BISHOP = 3;
 static constexpr int8_t WHITE_KNIGHT = 4;
-static constexpr int8_t WHITE_ROOK   = 5;
-static constexpr int8_t WHITE_KING   = 7;
-static constexpr int8_t WHITE_QUEEN  = 9;
+static constexpr int8_t WHITE_ROOK = 5;
+static constexpr int8_t WHITE_KING = 7;
+static constexpr int8_t WHITE_QUEEN = 9;
 
-static constexpr int8_t BLACK_PAWN   = -1;
+static constexpr int8_t BLACK_PAWN = -1;
 static constexpr int8_t BLACK_BISHOP = -3;
 static constexpr int8_t BLACK_KNIGHT = -4;
-static constexpr int8_t BLACK_ROOK   = -5;
-static constexpr int8_t BLACK_KING   = -7;
-static constexpr int8_t BLACK_QUEEN  = -9;
+static constexpr int8_t BLACK_ROOK = -5;
+static constexpr int8_t BLACK_KING = -7;
+static constexpr int8_t BLACK_QUEEN = -9;
 
 // ============================================================================
 // PIECE MATERIAL VALUES (FOR AI EVALUATION)
 // ============================================================================
 
 /** @brief Standard centipawn value of a Pawn. */
-static constexpr int PAWN_VALUE   = 100;
+static constexpr int PAWN_VALUE = 100;
 /** @brief Standard centipawn value of a Bishop. */
 static constexpr int BISHOP_VALUE = 320;
 /** @brief Standard centipawn value of a Knight. */
 static constexpr int KNIGHT_VALUE = 330;
 /** @brief Standard centipawn value of a Rook. */
-static constexpr int ROOK_VALUE   = 500;
+static constexpr int ROOK_VALUE = 500;
 /** @brief Standard centipawn value of a Queen. */
-static constexpr int QUEEN_VALUE  = 900;
+static constexpr int QUEEN_VALUE = 900;
 /** @brief Arbitrarily high value for the King to heavily penalize Checkmate states. */
-static constexpr int KING_VALUE   = 20000;
+static constexpr int KING_VALUE = 20000;
 
 // ============================================================================
 // SPECIAL SQUARES (INDEXED 0-63)
 // ============================================================================
 
 /** @brief Starting 1D array index of the White King (e1). */
-static constexpr int WHITE_KING_START       = 60;
+static constexpr int WHITE_KING_START = 60;
 /** @brief Starting 1D array index of the White Kingside Rook (h1). */
 static constexpr int WHITE_ROOK_RIGHT_START = 63;
 /** @brief Starting 1D array index of the White Queenside Rook (a1). */
-static constexpr int WHITE_ROOK_LEFT_START  = 56;
+static constexpr int WHITE_ROOK_LEFT_START = 56;
 
 /** @brief Starting 1D array index of the Black King (e8). */
-static constexpr int BLACK_KING_START       = 4;
+static constexpr int BLACK_KING_START = 4;
 /** @brief Starting 1D array index of the Black Kingside Rook (h8). */
 static constexpr int BLACK_ROOK_RIGHT_START = 7;
 /** @brief Starting 1D array index of the Black Queenside Rook (a8). */
-static constexpr int BLACK_ROOK_LEFT_START  = 0;
+static constexpr int BLACK_ROOK_LEFT_START = 0;
 
 /** @brief Sentinel value indicating no square is selected or targeted. */
 static constexpr int NO_VALID_INDEX = -1;

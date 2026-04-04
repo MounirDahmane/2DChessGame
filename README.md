@@ -1,66 +1,95 @@
 # E2-E4 Chess Engine
 
-A high-performance, fully featured 2D chess engine built with C++ and SFML.
-Designed with a modular architecture, asynchronous AI, smooth animations, and a complete set of gameplay tools for a polished chess experience.
+A high-performance, modular 2D chess engine built with **C++17** and **SFML**.  
+This project features a strictly decoupled architecture, asynchronous multithreading for AI computation, and a polished UI with dynamic animations.
 
 <p align="center">
-  <img src="docs/gameplay.gif" alt="Gameplay Demo" width="480" />
+  <img src="docs/gameplay.gif" alt="E2-E4 Gameplay" width="600" />
 </p>
 
-## Features
+## 🚀 Key Features
 
-### Core Engine
+### 🧠 Core Engine & AI
+- **Complete Chess Rules:** Standard moves, castling, en passant, and pawn promotion.
+- **Asynchronous AI:** A Minimax AI with alpha-beta pruning that runs on background threads to prevent UI lag.
+- **Advanced Logic:** Detection for stalemate, the 50-move rule, and threefold repetition.
 
-* Full chess rules support, including castling, en passant, and pawn promotion.
-* Advanced draw detection with stalemate, the 50-move rule, and threefold repetition.
-* Minimax AI with alpha-beta pruning, positional evaluation tables, and adjustable difficulty.
-* Multithreaded AI execution to keep the UI responsive and avoid freezing during computation.
+### 🎨 Visuals & UX
+- **Smooth Animations:** Linear interpolation for piece movement and screen-shake effects.
+- **Interactive UI:** Drag-and-drop support, real-time move hints, and a dual sidebar tracking match history and timers.
+- **Audio Feedback:** Custom sound triggers for moves, captures, and checks.
 
-### Gameplay and UI
+---
 
-* Drag-and-drop movement with traditional click-to-move support.
-* Smooth piece sliding animations and screen shake effects for captures, checks, and checkmates.
-* Dual-sidebar layout with match timers, material score, captured pieces, and live move history.
-* Clear visual and audio feedback, including:
+## 📂 Repository Structure
 
-  * Red highlight when the king is in check.
-  * Move hints for quiet moves and captures.
-  * Turn indicators and an “AI is thinking...” status display.
-  * Sound effects for moves, captures, and checks.
-
-### Tools and Customization
-
-* Time controls with 1, 3, 5, and 10 minute modes, plus optional +5s increment.
-* Multiple board themes, including Classic, Green, and Blue.
-* Undo move support for quick correction and analysis.
-* PGN export for saving and reviewing games externally.
-* Main menu for local PvP, playing against the computer, and managing settings.
-
-## Project Structure
-
-The codebase is organized around a modular, refactored design for maintainability and clarity:
+The project is organized into focused directories for a clean separation of assets, logic, and build scripts:
 
 ```text
-include/Constants.hpp   — Centralized configuration for colors, UI sizing, and piece values
-include/ChessBoard.hpp  — Class definitions, async threading, and game state management
-src/ChessBoard.cpp      — UI rendering, AI execution, animations, and input handling
-src/MoveLogic.cpp       — Move validation, check simulation, and pathfinding logic
-src/main.cpp            — Application entry point and main game loop
+.
+├── assets/             # Game resources (images, fonts, sounds)
+├── docs/               # Documentation and gameplay previews
+├── include/            # Header files (.hpp)
+├── src/                # Source implementations (.cpp)
+├── thirdparty/         # Local SFML libraries and external dependencies
+├── CMakeLists.txt      # Primary build configuration
+├── config.sh           # Utility for setting up the environment
+├── format.sh           # Script to trigger clang-format across the repo
+└── run.sh              # One-click script to compile and launch the game
+````
+
+---
+
+## 🛠️ Installation & Build
+
+### Prerequisites
+
+Ensure you have the **SFML 2.6.1** development libraries installed.
+
+**On Ubuntu/Debian:**
+
+```bash
+sudo apt update
+sudo apt install libsfml-dev
 ```
 
-## Architecture
+### Fast-Track Setup
 
-The project separates responsibilities into focused components:
+Use the helper scripts to manage the build process:
 
-* **Rendering and input** are handled independently from move validation.
-* **Game logic** is isolated from the user interface.
-* **AI computation** runs asynchronously to preserve smooth gameplay.
-* **Shared constants and configuration** are centralized to simplify maintenance and tuning.
+1. **Configure** the build directory:
 
-## Highlights
+```bash
+./config.sh
+```
 
-* Clean and scalable C++ design
-* Responsive SFML-based 2D interface
-* Professional chess mechanics
-* Background AI processing
-* Smooth gameplay presentation
+2. **Build & Run** the engine:
+
+```bash
+chmod +x run.sh
+./run.sh
+```
+
+---
+
+## 🧹 Developer Tools
+
+### Automatic Formatting
+
+To maintain the **Allman brace style** and consistent indentation across the codebase, use the formatting script:
+
+```bash
+./format.sh
+```
+
+*Requires `clang-format` to be installed.*
+
+### Build System
+
+The project uses **CMake 3.15+**. It is configured to automatically detect all source files in `src/` recursively and sync assets to the build folder after compilation.
+
+---
+
+## 🧰 Tech Stack
+
+**C++17**, **SFML 2.6.1**, **CMake**, **Clang-Format**, **Asynchronous Threading**

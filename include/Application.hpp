@@ -1,16 +1,18 @@
 #pragma once
 
-#include <SFML/Graphics.hpp>
 #include "ChessBoard.hpp"
+
+#include <SFML/Graphics.hpp>
 
 /**
  * @class Application
  * @brief Manages the OS window, game loop, and event polling.
- * * This class encapsulates the SFML window and the main Game Loop. 
- * It separates the OS-level concerns (rendering, events, delta time) 
+ * * This class encapsulates the SFML window and the main Game Loop.
+ * It separates the OS-level concerns (rendering, events, delta time)
  * from the core chess logic.
  */
-class Application {
+class Application
+{
 public:
     /**
      * @brief Initializes the application window and game settings.
@@ -19,7 +21,7 @@ public:
 
     /**
      * @brief Starts the main game loop.
-     * * Continuously processes events, updates game logic, and renders 
+     * * Continuously processes events, updates game logic, and renders
      * the screen until the window is closed.
      */
     void run();

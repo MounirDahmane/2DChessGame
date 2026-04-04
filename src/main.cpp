@@ -1,16 +1,21 @@
 #include "Application.hpp"
+
 #include <iostream>
 
-int main() {
-    try {
+int main()
+{
+    try
+    {
         Application app;
         app.run();
-    } 
-    catch (const std::exception& e) {
+    }
+    catch (const std::exception &e)
+    {
         std::cerr << "Fatal error: " << e.what() << '\n';
         return 1;
-    } 
-    catch (...) {
+    }
+    catch (...)
+    {
         std::cerr << "Unknown fatal error occurred\n";
         return 1;
     }
