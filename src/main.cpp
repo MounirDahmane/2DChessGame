@@ -52,16 +52,16 @@ int main()
     window.setFramerateLimit(60);
 
     sf::Font font;
-    if (!font.loadFromFile("assets/fonts/arial.ttf"))
-        return -1;
+    font.loadFromFile("assets/fonts/arial.ttf");
 
     GameState state = GameState::Menu;
     ChessBoard board;
     sf::Clock deltaClock;
 
-    // Create Menu Buttons
-    MenuButton btnStart("Start 1 vs 1", {450, 350}, font);
-    MenuButton btnQuit("Exit Game", {450, 450}, font);
+    // --- Create Menu Buttons ---
+    MenuButton btnPvP("Local 1 vs 1", {450, 300}, font);
+    MenuButton btnPvAI("Play vs AI", {450, 400}, font); // New Button
+    MenuButton btnQuit("Exit Game", {450, 500}, font);
 
     while (window.isOpen())
     {
@@ -79,8 +79,16 @@ int main()
                 if (event.type == sf::Event::MouseButtonPressed &&
                     event.mouseButton.button == sf::Mouse::Left)
                 {
-                    if (btnStart.isClicked(mousePos))
+                    if (btnPvP.isClicked(mousePos))
+                    {
+                        board.setAiMode(false);
                         state = GameState::Playing;
+                    }
+                    if (btnPvAI.isClicked(mousePos))
+                    {
+                        board.setAiMode(true);
+                        state = GameState::Playing;
+                    }
                     if (btnQuit.isClicked(mousePos))
                         window.close();
                 }
@@ -88,9 +96,7 @@ int main()
             else if (state == GameState::Playing)
             {
                 if (event.type == sf::Event::MouseMoved)
-                {
                     board.handleHover(mousePos);
-                }
                 if (event.type == sf::Event::MouseButtonPressed &&
                     event.mouseButton.button == sf::Mouse::Left)
                 {
@@ -103,13 +109,23 @@ int main()
 
         if (state == GameState::Menu)
         {
-            btnStart.draw(window);
+            btnPvP.draw(window);
+            btnPvAI.draw(window);
             btnQuit.draw(window);
         }
         else if (state == GameState::Playing)
         {
             board.update(dt);
             board.draw(window);
+
+            // --- AI LOGIC TRIGGER ---
+            // If it's AI mode and Black's turn, and no one is choosing a promotion piece
+            if (board.getIsAiGame() && !board.getIsWhiteTurn() && !board.getIsCheckmate() &&
+                !board.getIsPromoting())
+            {
+                // Optional: Add a tiny delay here if the AI moves too fast!
+                board.aiMove();
+            }
         }
 
         window.display();
